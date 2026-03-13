@@ -24,4 +24,26 @@ export class Constants extends null {
 		client_heartbeat_session_id: randomUUID(),
 		client_app_state: 'focused',
 	};
+	// Android
+	static readonly ANDROID_USER_AGENT = 'Discord-Android/316011;RNA';
+	static readonly ANDROID_Properties = {
+		os: 'Android',
+		browser: 'Discord Android',
+		device: 'b0q',
+		system_locale: 'en-US',
+		has_client_mods: false,
+		client_version: '316.11 - rn',
+		release_channel: 'googleRelease',
+		device_vendor_id: randomUUID(),
+		design_id: 2,
+		browser_user_agent: '',
+		browser_version: '',
+		os_version: '28',
+		client_build_number: 5169,
+		client_event_source: null,
+		client_launch_id: randomUUID(),
+		launch_signature: '1771754995045142953', // ?
+		client_app_state: 'active',
+		client_heartbeat_session_id: randomUUID(),
+	};
 }

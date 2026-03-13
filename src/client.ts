@@ -11,39 +11,46 @@ async function makeRequest(
 	url: string,
 	init: RequestInit,
 ): Promise<ResponseLike> {
+	// console.log(`Making request to ${url} with method ${init.method}...`);
 	if (init.headers) {
 		const myHeaders = new Headers(init.headers as any);
-		if (myHeaders.has('User-Agent')) {
-			myHeaders.set('User-Agent', Constants.USER_AGENT);
-		}
-		if (myHeaders.has('Authorization')) {
-			myHeaders.set(
-				'Authorization',
-				myHeaders.get('Authorization')!.replace('Bot ', ''),
-			);
-		}
-		myHeaders.append('accept-language', 'vi');
-		myHeaders.append('origin', 'https://discord.com');
-		myHeaders.append('pragma', 'no-cache');
-		myHeaders.append('priority', 'u=1, i');
-		myHeaders.append('referer', 'https://discord.com/channels/@me');
-		myHeaders.append(
-			'sec-ch-ua',
-			'"Not)A;Brand";v="8", "Chromium";v="138"',
+		const isAndroidRequest = myHeaders.get('AndroidRequest') === 'true';
+		myHeaders.delete('AndroidRequest');
+		myHeaders.set(
+			'Authorization',
+			myHeaders.get('Authorization')!.replace('Bot ', ''),
 		);
-		myHeaders.append('sec-ch-ua-mobile', '?0');
-		myHeaders.append('sec-ch-ua-platform', '"Windows"');
-		myHeaders.append('sec-fetch-dest', 'empty');
-		myHeaders.append('sec-fetch-mode', 'cors');
-		myHeaders.append('sec-fetch-site', 'same-origin');
+		myHeaders.append('accept-language', 'vi');
 		myHeaders.append('x-debug-options', 'bugReporterEnabled');
 		myHeaders.append('x-discord-locale', 'en-US');
 		myHeaders.append('x-discord-timezone', 'Asia/Saigon');
+		if (isAndroidRequest) {
+			myHeaders.set('User-Agent', Constants.ANDROID_USER_AGENT);
+		} else {
+			myHeaders.set('User-Agent', Constants.USER_AGENT);
+			myHeaders.append('origin', 'https://discord.com');
+			myHeaders.append('referer', 'https://discord.com/channels/@me');
+			myHeaders.append('pragma', 'no-cache');
+			myHeaders.append('priority', 'u=1, i');
+			myHeaders.append(
+				'sec-ch-ua',
+				'"Not)A;Brand";v="8", "Chromium";v="138"',
+			);
+			myHeaders.append('sec-ch-ua-mobile', '?0');
+			myHeaders.append('sec-ch-ua-platform', '"Windows"');
+			myHeaders.append('sec-fetch-dest', 'empty');
+			myHeaders.append('sec-fetch-mode', 'cors');
+			myHeaders.append('sec-fetch-site', 'same-origin');
+		}
 		myHeaders.append(
 			'x-super-properties',
-			Buffer.from(JSON.stringify(Constants.Properties)).toString(
-				'base64',
-			),
+			Buffer.from(
+				JSON.stringify(
+					isAndroidRequest
+						? Constants.ANDROID_Properties
+						: Constants.Properties,
+				),
+			).toString('base64'),
 		);
 		init.headers = myHeaders;
 	}
@@ -101,13 +108,22 @@ export class ClientQuest extends Client {
 	connect() {
 		return this.websocketManager.connect();
 	}
-	fetchQuests() {
-		return this.rest.get('/quests/@me').then((response) => {
-			this.questManager = QuestManager.fromResponse(
-				this,
-				response as AllQuestsResponse,
-			);
-			return this.questManager;
-		});
+	destroy() {
+		return this.websocketManager.destroy();
+	}
+	fetchQuests(fetchExcludedQuests = false) {
+		return this.rest
+			.get('/quests/@me')
+			.then((response) =>
+				QuestManager.fromResponse(
+					this,
+					response as AllQuestsResponse,
+					fetchExcludedQuests,
+				),
+			)
+			.then((manager) => {
+				this.questManager = manager;
+				return manager;
+			});
 	}
 }

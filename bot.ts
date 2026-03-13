@@ -22,11 +22,23 @@ client.on(
 client.once(GatewayDispatchEvents.Ready, async ({ data, api }) => {
 	currentUserId = data.user.id;
 	console.log(`Logged in as @${data.user.username}`);
-	await client.fetchQuests();
+	await client.fetchQuests(true);
 	const questsValid = client.questManager!.filterQuestsValid();
 	console.log(`Found ${questsValid.length} valid quests to do.`);
 	await Promise.allSettled(
 		questsValid.map((quest) => client.questManager!.doingQuest(quest)),
+	);
+	// Disconnect
+	await client.destroy();
+});
+
+client.rest.on('rateLimited', (info: any) => {
+	console.warn(
+		`\n[RateLimit]\n` +
+			`  -> Route: ${info.method} ${info.route}\n` +
+			`  -> Scope: ${info.scope}${info.global ? ' (Global)' : ''}\n` +
+			`  -> Limit: ${info.limit} requests\n` +
+			`  -> Retry after: ${info.retryAfter}ms (${(info.retryAfter / 1000).toFixed(2)}s)\n`
 	);
 });
 

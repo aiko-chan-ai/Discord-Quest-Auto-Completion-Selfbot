@@ -10,14 +10,47 @@ export class QuestManager implements Iterable<Quest> {
 		quests.forEach((quest) => this.quests.set(quest.id, quest));
 	}
 
-	static fromResponse(
+	static async fromResponse(
 		client: ClientQuest,
 		response: AllQuestsResponse,
-	): QuestManager {
-		return new QuestManager(
+		fetchExcludedQuests = false,
+	): Promise<QuestManager> {
+		if (response.quest_enrollment_blocked_until !== null) {
+			throw new Error(
+				`Quest enrollment is blocked until ${response.quest_enrollment_blocked_until}.`,
+			);
+		}
+		const questManager = new QuestManager(
 			client,
 			response.quests.map((quest) => Quest.create(quest)),
 		);
+		if (fetchExcludedQuests) {
+			for (const quest of response.excluded_quests) {
+				if (quest.id) {
+					await questManager.addExcludedQuest(quest.id);
+				}
+			}
+		}
+		return Promise.resolve(questManager);
+	}
+
+	protected addExcludedQuest(questId: string) {
+		// fetch quest details and add to quests
+		return this.client.rest.get(`/quests/${questId}`).then((response) => {
+			const quest = Quest.create({
+				id: questId,
+				config: response as any,
+				user_status: null,
+				targeted_content: 0,
+				preview: false,
+			});
+			console.log(
+				`Added excluded quest "${quest.config.messages.quest_name}" to the quest manager.`,
+			);
+			this.quests.set(quest.id, quest);
+		}).catch((err) => {
+			console.error(`Failed to fetch excluded quest "${questId}".`, err);
+		});
 	}
 
 	[Symbol.iterator](): IterableIterator<Quest> {
@@ -96,14 +129,20 @@ export class QuestManager implements Iterable<Quest> {
 		>;
 	}
 
-	acceptQuest(questId: string) {
+	acceptQuest(questId: string, isAndroid = false): Promise<Quest | undefined> {
+		// console.log(`Accepting quest "${questId}"...`);
 		return this.client.rest
 			.post(`/quests/${questId}/enroll`, {
 				body: {
-					location: 11, // QUEST_HOME_DESKTOP | https://docs.discord.food/resources/quests#quest-content-type
+					location: isAndroid ? 12 : 11, // QUEST_HOME_MOBILE : QUEST_HOME_DESKTOP | https://docs.discord.food/resources/quests#quest-content-type
+					// location: 19, // QUEST_SHARE_LINK
 					is_targeted: false,
 					metadata_raw: null,
+					metadata_sealed: null,
 				},
+				headers: {
+					AndroidRequest: isAndroid ? "true" : "false",
+				}
 			})
 			.then((r) => {
 				const quest = this.get(questId);
@@ -118,9 +157,17 @@ export class QuestManager implements Iterable<Quest> {
 
 	async doingQuest(quest: Quest) {
 		const questName = quest.config.messages.quest_name;
+		const isAndroid = Boolean(
+			quest.config.task_config.tasks.WATCH_VIDEO_ON_MOBILE,
+		);
 		if (!quest.isEnrolledQuest()) {
-			console.log(`Enrolling in quest "${questName}"...`);
-			await this.acceptQuest(quest.id);
+			console.log(`Enrolling in quest "${questName}" (${isAndroid ? 'Android' : 'Desktop'} version)...`);
+			try {
+				await this.acceptQuest(quest.id, isAndroid);
+			} catch (err: any) {
+				console.error(`Failed to enroll in quest "${questName}".`, err?.message);
+				throw err;
+			}
 		}
 		const applicationName = quest.config.application.name;
 		const taskConfig = quest.config.task_config;
