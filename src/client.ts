@@ -77,7 +77,9 @@ export class ClientQuest extends Client {
 		this.websocketManager = gateway;
 	}
 	connect() {
-		return this.websocketManager.connect();
+		return Utils.updateLatestBuildVersion().then(() =>
+			this.websocketManager.connect(),
+		);
 	}
 	destroy() {
 		return this.websocketManager.destroy();

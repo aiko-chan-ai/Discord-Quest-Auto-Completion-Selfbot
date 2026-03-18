@@ -143,4 +143,53 @@ export class Utils extends null {
 			rl.close();
 		}
 	}
+	public static async updateLatestBuildVersion(): Promise<void> {
+		try {
+			console.info('Fetching latest Discord build number (Desktop Version)...');
+			const response = await fetch('https://discord.com/app', {
+				headers: { 'User-Agent': Constants.USER_AGENT },
+			});
+			if (!response.ok) {
+				console.warn(
+					`Failed to fetch Discord page (${response.status})`,
+				);
+				return;
+			}
+			const html = await response.text();
+			// Find JS asset files
+			let scripts = Array.from(html.match(/\/assets\/web.([a-f0-9]+)\.js/g) || []);
+			if (!scripts || scripts.length === 0) {
+				console.warn('No JS assets found in HTML.');
+				return;
+			}
+
+			for (const scriptPath of scripts) {
+				try {
+					const assetUrl = `https://discord.com${scriptPath}`;
+
+					const assetResponse = await fetch(assetUrl, {
+						headers: { 'User-Agent': Constants.USER_AGENT },
+					});
+					if (!assetResponse.ok) continue;
+					const jsContent = await assetResponse.text();
+					const match = jsContent.match(
+						/buildNumber["\s:]+["\s]*(\d{5,7})/,
+					);
+					if (match) {
+						const buildNumber = parseInt(match[1], 10);
+						console.log(`Build number: ${buildNumber}`);
+						Constants.Properties.client_build_number = buildNumber;
+						return;
+					}
+				} catch {
+					continue;
+				}
+			}
+			console.warn('Build number not found in any JS assets.');
+			return;
+		} catch (error) {
+			console.error('Error fetching latest build number:', error);
+			return;
+		}
+	}
 }

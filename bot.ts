@@ -1,5 +1,6 @@
 import { GatewayDispatchEvents } from 'discord-api-types/v10';
 import { ClientQuest } from './src/client';
+import { Utils } from './src/utils';
 
 let currentUserId: string | null = null;
 
