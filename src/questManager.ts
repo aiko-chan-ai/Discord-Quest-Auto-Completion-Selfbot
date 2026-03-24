@@ -263,12 +263,21 @@ export class QuestManager implements Iterable<Quest> {
 					'x-captcha-rqtoken': rawError['captcha_rqtoken'],
 					'x-captcha-session-id': rawError['captcha_session_id'],
 				});
-			} else {
-				console.error(
-					`Failed to redeem rewards for quest "${quest.config.messages.quest_name}".`,
-					(err as Error).message,
-				);
 			}
+
+			if (
+				(err as Error).message === 'CAPTCHA_SKIPPED' ||
+				((err as any).rawError && (err as any).rawError.message === 'CAPTCHA_SKIPPED')
+			) {
+				console.warn(
+					`Quest "${quest.config.messages.quest_name}" skipped (Captcha not solved).`,
+				);
+				return;
+			}
+			console.error(
+				`Failed to redeem rewards for quest "${quest.config.messages.quest_name}".`,
+				(err as Error).message,
+			);
 		}
 	}
 

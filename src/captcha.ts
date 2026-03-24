@@ -12,10 +12,6 @@ if (process.env.YES_CAPTCHA_API_KEY) {
 
 // Handles captcha solving uses YesCaptcha if available else falls back to manual input.
 export function solveCaptcha(data: CaptchaDataFromRequest): Promise<string> {
-	// ! its ok
-	// return Utils.askQuestion("Enter the Captcha Key manually: ");
-	// todo: implement captcha solving using 3rd party services like yescaptcha
-	// ! The error rate of Yescaptcha with Discord is extremely high (as already mentioned in the documentation). Do not use it, as it consistently returns error 10008.
 	if (yesCaptchaClient) {
 		return yesCaptchaClient
 			.hcaptcha(data.captcha_sitekey, 'https://discord.com', {
@@ -23,7 +19,22 @@ export function solveCaptcha(data: CaptchaDataFromRequest): Promise<string> {
 				isInvisible: false,
 				userAgent: Constants.USER_AGENT,
 			})
-			.then((result) => result.gRecaptchaResponse);
+			.then((result) => result.gRecaptchaResponse)
+			.catch(() =>
+				Utils.askQuestion(
+					'YesCaptcha failed. Enter the Captcha Key manually (or press Enter to skip): ',
+				).then((answer) => {
+					if (!answer.trim()) throw new Error('CAPTCHA_SKIPPED');
+					return answer;
+				}),
+			);
 	}
-	return Promise.reject(new Error('Captcha solving not implemented yet.'));
+	return Utils.askQuestion(
+		'Enter the Captcha Key manually (or press Enter to skip this quest): ',
+	).then((answer) => {
+		if (!answer.trim()) {
+			throw new Error('CAPTCHA_SKIPPED');
+		}
+		return answer;
+	});
 }

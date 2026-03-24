@@ -1,6 +1,11 @@
 import { GatewayDispatchEvents } from 'discord-api-types/v10';
 import { ClientQuest } from './src/client';
 import { Utils } from './src/utils';
+import { loadEnvFile } from 'node:process';
+
+try {
+	loadEnvFile();
+} catch {}
 
 let currentUserId: string | null = null;
 
