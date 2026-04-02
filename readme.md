@@ -24,7 +24,7 @@ This project provides a minimal selfbot framework built on top of discord.js cor
   * `WATCH_VIDEO_ON_MOBILE`
   * `ACHIEVEMENT_IN_ACTIVITY`
 
-* Automatically **redeems rewards** for completed quests.
+* ~~Automatically **redeems rewards** for completed quests.~~ nope 😭
 * Unsupported for now (due to no valid samples at time of development):
 
   * `STREAM_ON_DESKTOP`
@@ -98,7 +98,7 @@ npm run start
 After completion, your output may look like this:
 
 ```sh
-Logged in as @<username>
+Logged in!
 Found 9 valid quests to do.
 Spoofing video for Opera GX.
 Spoofed your game to the Comet AI browser. Wait for 15 more minutes.
