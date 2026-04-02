@@ -1,3 +1,4 @@
+import { APIApplication } from 'discord-api-types/v10';
 import { solveCaptcha } from './captcha';
 import { ClientQuest } from './client';
 import type {
@@ -552,6 +553,25 @@ export class QuestManager implements Iterable<Quest> {
 				progressError,
 			);
 			return;
+		}
+		// 4. Deauthorize
+		const res3 = (await this.client.rest.get(`/oauth2/tokens`)) as {
+			id: string;
+			scopes: string[];
+			application: APIApplication;
+			disclosures: number[];
+		}[];
+		const tokenInfo = res3.find((t) => t.application.id === applicationId);
+		if (tokenInfo) {
+			try {
+				await this.client.rest.delete(`/oauth2/tokens/${tokenInfo.id}`);
+				console.log(`Deauthorized application ${applicationName}`);
+			} catch (err) {
+				console.error(
+					`Failed to deauthorize token for application ${applicationName}.`,
+					(err as Error).message,
+				);
+			}
 		}
 		console.log(`Quest "${questName}" completed!`);
 		this.client.emitQuestCompleted(quest.id);
